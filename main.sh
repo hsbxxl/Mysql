@@ -152,6 +152,7 @@ fi
 }
 
 function calc_innodb_buffer(){
+#Claculate the innodb buffer size
 mem=`cat /proc/meminfo | sed -n '1p'| awk '{print $2}'`
 os_mem=$[$mem/1024]M
 echo "The OS memory is $os_mem"
