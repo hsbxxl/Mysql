@@ -34,6 +34,8 @@ then
 fi
 cat /etc/my.cnf
 
+# disable selinux
+setenforce 0
 
 #8. Start mysql
 if [ "$osversion" == "6" ]
