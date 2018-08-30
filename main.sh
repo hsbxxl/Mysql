@@ -4,14 +4,14 @@
 #
 #
 #Import the vars
-#source ./config.sh
+source ./config.sh
 
 function check_mysql_rpm() {
 rpm_name=mysql
 x=`rpm -qa | grep $rpm_name`
 if [ `rpm -qa | grep $rpm_name |wc -l` -ne 0 ];then
 echo -e "yes, The mysql was installed ! the packet_list: \n$x"
-return
+exit 1
 else
 echo "Not Installed, Installing the mysql"
 fi
@@ -28,7 +28,7 @@ for file in ${arr_path[@]}; do
   if [ -e $file ]
   then
      echo "The file/Path $file is exist, Nothing to do! Please check the data in the path. Then change the install path, or backup and drop the path."
-     return 1
+     exit 1
   else
      echo "The file/Path $file is not exist. Create it"
      mkdir -p $file
@@ -53,7 +53,7 @@ GRANT ALL PRIVILEGES ON *.* TO 'envision'@'%' IDENTIFIED BY  'Envisi0n4321!' WIT
 EOF
    else 
       echo "Connect the Mysql fail! Don't Set the password"
-      return
+      return 1
    fi
 }
 
@@ -65,6 +65,14 @@ GRANT ALL PRIVILEGES ON *.* TO 'envision'@'%' IDENTIFIED BY  'Envisi0n4321!' WIT
 EOF
 }
 
+function calc_innodb_buffer(){
+#Claculate the innodb buffer size
+mem=`cat /proc/meminfo | sed -n '1p'| awk '{print $2}'`
+os_mem=$[$mem/1024]M
+echo "The OS memory is $os_mem"
+innodb_buffer_mem=$[($mem/1024)*6/10]M
+echo "The innodb_buffer_mem will be set $innodb_buffer_mem"
+}
 
 function change_mysql57_my_cnf_file() {
 # Change the mysql 5.7 /etc/my.cnf 
@@ -151,14 +159,6 @@ exit 1
 fi
 }
 
-function calc_innodb_buffer(){
-#Claculate the innodb buffer size
-mem=`cat /proc/meminfo | sed -n '1p'| awk '{print $2}'`
-os_mem=$[$mem/1024]M
-echo "The OS memory is $os_mem"
-innodb_buffer_mem=$[($mem/1024)*6/10]M
-echo "The innodb_buffer_mem will be set $innodb_buffer_mem"
-}
 
 ################The mysql download URL####################
 function yum_centos6_myysql56() {
@@ -259,7 +259,7 @@ then
     echo "The mysql 5.6 will be install."
     yum_centos6_myysql56 
     #tar_centos6_myysql56
-
+    
 elif [ "$osversion" == "7" ]&& [ "$msqlversion" == "56" ]
 then
    echo "The mysql 5.6 will be install."
