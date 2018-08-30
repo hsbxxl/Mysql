@@ -1,5 +1,8 @@
 #!/bin/bash
-
+# How to install the Mysql automatically? 
+# This file includes all the function for the installation. We will call them in the install.sh.
+#
+#
 #Import the vars
 source ./config.sh
 
@@ -24,7 +27,8 @@ echo ""
 for file in ${arr_path[@]}; do
   if [ -e $file ]
   then
-     echo "The file/Path $file is exist, Nothing to do"
+     echo "The file/Path $file is exist, Nothing to do! Please check the data in the path. Then change the install path, or backup and drop the path."
+     return 1
   else
      echo "The file/Path $file is not exist. Create it"
      mkdir -p $file
@@ -221,3 +225,60 @@ tar -xvf MySQL-5.6.41-1.el7.x86_64.rpm-bundle.tar
 rm -rf /tmp/mysql_install_temp
 }
 
+
+function check_os_version() {
+os_version6=`cat /etc/redhat-release|grep -o "6\."|cut -c -1`
+if [ "$os_version6" == "6" ]
+then
+osversion=6
+fi
+os_version7=`cat /etc/redhat-release|grep -o "7\."|cut -c -1`
+if [ "$os_version7" == "7" ]
+then
+osversion=7
+fi
+}
+
+function select_mysql_version() {
+#Notice!! This function is dependent with check_os_version and 
+#tar_centos7_myysql56,tar_centos7_myysql57,yum_centos7_myysql56 and so on
+# This function need behind those function in the script. 
+
+# 
+
+echo "If want to install Mysql 5.6, please enter 56 ."
+echo "If want to install Mysql 5.7, please enter 57 ."
+echo -n "Select the Mysql version:"   
+read msqlversion
+
+if [ "$osversion" == "6" ]&& [ "$msqlversion" == "56" ]
+then
+    echo "The mysql 5.6 will be install."
+    yum_centos6_myysql56 
+    #tar_centos6_myysql56
+
+elif [ "$osversion" == "7" ]&& [ "$msqlversion" == "56" ]
+then
+   echo "The mysql 5.6 will be install."
+   yum_centos7_myysql56 
+   #tar_centos7_myysql56
+
+elif [ "$osversion" == "6" ]&& [ "$msqlversion" == "57" ]
+then
+   echo "The mysql 5.7 will be install."
+    yum_centos6_myysql57 
+    #tar_centos6_myysql57   
+   
+elif [ "$osversion" == "7" ]&& [ "$msqlversion" == "57" ]
+then
+   echo "The mysql 5.7 will be install."
+   yum_centos7_myysql57 
+   #tar_centos7_myysql57
+ 
+else
+   echo "The script only support the version 5.6 and 5.7, please do not select the other version/value"
+   exit 1
+fi
+
+echo "The mysql $msqlversion was installed."
+}
