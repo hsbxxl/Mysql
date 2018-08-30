@@ -4,7 +4,7 @@
 #
 #
 #Import the vars
-source ./config.sh
+#source ./config.sh
 
 function check_mysql_rpm() {
 rpm_name=mysql
@@ -32,7 +32,7 @@ for file in ${arr_path[@]}; do
   else
      echo "The file/Path $file is not exist. Create it"
      mkdir -p $file
-     chown mysql:mysql $file
+     chown  -R mysql:mysql $file
      chmod 755 $file
   fi
   done
@@ -144,6 +144,7 @@ service mysqld status
 }
 
 function exit_commond(){
+# If some function run fail, we will call this function to exit the session
 echo $?
 if [[ $? -eq 0 ]];then
 exit 1
@@ -155,7 +156,7 @@ mem=`cat /proc/meminfo | sed -n '1p'| awk '{print $2}'`
 os_mem=$[$mem/1024]M
 echo "The OS memory is $os_mem"
 innodb_buffer_mem=$[($mem/1024)*6/10]M
-echo $innodb_buffer_mem
+echo "The innodb_buffer_mem will be set $innodb_buffer_mem"
 }
 
 ################The mysql download URL####################
@@ -210,6 +211,7 @@ rm -rf /tmp/mysql_install_temp
 
 function yum_centos7_myysql56() {
 #Centos7 mysql5.6 download and install
+rpm -ivh http://repo.mysql.com/mysql57-community-release-el7-11.noarch.rpm
 yum repolist enabled| grep mysql
 yum-config-manager --disable mysql56-community
 yum-config-manager --enable mysql57-community
@@ -239,7 +241,7 @@ osversion=7
 fi
 }
 
-function select_mysql_version() {
+function select_version_and_install_mysql() {
 #Notice!! This function is dependent with check_os_version and 
 #tar_centos7_myysql56,tar_centos7_myysql57,yum_centos7_myysql56 and so on
 # This function need behind those function in the script. 
