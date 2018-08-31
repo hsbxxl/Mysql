@@ -140,12 +140,26 @@ EOF
 }
 
 function start_mysql_centos7() {
+#disable firewall firstly
+systemctl stop firewalld
+systemctl disable firewalld
+#disable selinux temporary
+setenforce 0
+#start mysql
 systemctl start  mysqld.service
 systemctl enable mysqld.service
 systemctl status mysqld.service
 }
 
 function start_mysql_centos6() {
+#disable firewall firstly
+service iptables stop
+service iptables status
+chkconfig iptables off
+chkconfig iptables --list
+#disable selinux temporary
+setenforce 0
+#start mysql
 service mysqld start
 chkconfig mysqld on
 service mysqld status
