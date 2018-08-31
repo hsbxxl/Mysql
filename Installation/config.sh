@@ -45,3 +45,10 @@ my56_max_binlog_cache_size=512m
 my56_slow_query_log=1
 my56_server_id=101
 
+
+## Mysql root and new user password
+# The vars will be used in the function set_password_mysql56 && set_password_mysql57
+# The format example is rootpassword='yourpassword'
+rootpassword='xx$%FC!\@'
+newuser='liang'
+newuserpassword='Liang123!'

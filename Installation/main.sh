@@ -46,22 +46,22 @@ function set_password_mysql57() {
 #   dbstat=`mysqladmin -uroot -p${defaultmysqlpwd} -P3306 ping |grep alive|wc -l`
 #   if [ $dbstat -eq 1 ]
 #      then 
-   echo "Connect the Mysql successfully! Setting the password......"
-   mysql -uroot -p${defaultmysqlpwd} --connect-expired-password  2>/dev/null <<EOF
-SET PASSWORD = PASSWORD('Envisi0n1324!');
-GRANT ALL PRIVILEGES ON *.* TO 'envision'@'%' IDENTIFIED BY  'Envisi0n4321!' WITH GRANT OPTION;
+      echo "Connect the Mysql successfully! Setting the password......"
+   mysql -uroot -p${defaultmysqlpwd} --connect-expired-password 2>/dev/null<<EOF
+SET PASSWORD = PASSWORD("${rootpassword}");
+GRANT ALL PRIVILEGES ON *.* TO "${newuser}"@'%' IDENTIFIED BY  "${newuserpassword}" WITH GRANT OPTION;
 EOF
 #   else 
 #      echo "Connect the Mysql fail! Don't Set the password"
 #      return 1
-   fi
+#   fi
 }
 
 function set_password_mysql56() {
 #change the default password for the mysql version 5.6
 /usr/bin/mysql -uroot --connect-expired-password 2>/dev/null<<EOF
-SET PASSWORD = PASSWORD('Envisi0n1324!');
-GRANT ALL PRIVILEGES ON *.* TO 'envision'@'%' IDENTIFIED BY  'Envisi0n4321!' WITH GRANT OPTION;
+SET PASSWORD = PASSWORD("${rootpassword}");
+GRANT ALL PRIVILEGES ON *.* TO "${newuser}"@'%' IDENTIFIED BY  "${newuserpassword}" WITH GRANT OPTION;
 EOF
 }
 
@@ -89,8 +89,8 @@ innodb_flush_log_at_trx_commit=$my57_innodb_flush_log_at_trx_commit
 query_cache_type=1
 query_cache_size=10383360  
 max_connections=$my57_max_connections
-innodb_log_file_size=$innodb_buffer_mem
-innodb_buffer_pool_size=$my57_innodb_buffer_pool_size
+innodb_log_file_size=$innodb_log_file_size
+innodb_buffer_pool_size=$innodb_buffer_mem
 binlog_format=$my57_binlog_format
 expire_logs_days=$my57_expire_logs_days
 max_binlog_size=$my57_max_binlog_size
