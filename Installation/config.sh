@@ -49,6 +49,6 @@ my56_server_id=101
 ## Mysql root and new user password
 # The vars will be used in the function set_password_mysql56 && set_password_mysql57
 # The format example is rootpassword='yourpassword'
-rootpassword='xx$%FC!\@'
-newuser='liang'
-newuserpassword='Liang123!'
+rootpassword='Abcd0n123!'
+newuser='username'
+newuserpassword='Abcd0n123!'
