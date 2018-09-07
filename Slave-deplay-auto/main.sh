@@ -1,15 +1,13 @@
-rds_hostname=$1
-rds_user=$2
-rds_password=$3
-rds_port=3306
-rdsdb=`echo $rds_hostname | cut -d . -f 1`
-
+#!/bin/bash
+# Deploy the Mysql slave automatically? 
+#Call the functions and vars
+source ./config.sh
 
 function check_parameter_format() {
 # check the format of the input
 if [ "$#" != "6" ]; then
   echo 'invalid parameters'
-  echo 'usage: rds_mysql_dump.sh master_instance username password slave_host username password'
+  echo 'usage: master_mysql_dump.sh master_instance username password slave_host username password'
   echo 'example: local_mysql_master_slave.sh 192.168.0.1 root password localhost root password'
   return
 fi
@@ -20,7 +18,7 @@ first_stamp=`date +%s`
 echo `date "+%Y_%m_%d_%H_%M_%S"`
 data_stamp=`date "+%Y%m%d%H%M"`
 # export the databases
-mysqldump -u$rds_user -p$rds_password -h$rds_hostname  2>/dev/null \
+mysqldump -u$master_user -p$master_password -h$master_hostname  2>/dev/null \
 --port=3306 \
 --single-transaction \
 --master-data=2 \
@@ -49,12 +47,12 @@ echo The master binglog position $position
 
 function Check_master_connectivity() {
 # check the mysql connectivity 
-dbstat=`mysqladmin -u$rds_user -p$rds_password -h$rds_hostname -P$rds_port ping |grep alive|wc -l`
+dbstat=`mysqladmin -u$master_user -p$master_password -h$master_hostname -P$master_port ping |grep alive|wc -l`
 if [ $dbstat -eq 1 ]
     then 
     echo "Connect the RDS DB successfully"
 #create replication user
-rds_db_size=`/usr/bin/mysql -u$rds_user -p$rds_password -h$rds_hostname -N --connect-expired-password <<EOF
+master_db_size=`/usr/bin/mysql -u$master_user -p$master_password -h$master_hostname -N --connect-expired-password <<EOF
 grant replication slave,replication client on *.* to $repluser@'%' identified by '$repluserpassword';
 EOF`
     else
@@ -65,7 +63,7 @@ fi
 
 function get_database_list() {
 # get the database name list, the databases 'MYSQL','PERFORMANCE_SCHEMA','INFORMATION_SCHEMA','SYS' will not export/import.
-db_name=`/usr/bin/mysql -u$rds_user -p$rds_password -h$rds_hostname -N --connect-expired-password <<EOF
+db_name=`/usr/bin/mysql -u$master_user -p$master_password -h$master_hostname -N --connect-expired-password <<EOF
 select TABLE_SCHEMA
 from information_schema.tables
 where TABLE_SCHEMA NOT IN ('MYSQL','PERFORMANCE_SCHEMA','INFORMATION_SCHEMA','SYS')
@@ -78,23 +76,23 @@ function estimate_dump_time() {
 
 function estimate_dump_time() {
 # Calculate the database size, and estimate the dump of time from the master.
-rds_db_size=`/usr/bin/mysql -u$rds_user -p$rds_password -h$rds_hostname -N --connect-expired-password <<EOF
+master_db_size=`/usr/bin/mysql -u$master_user -p$master_password -h$master_hostname -N --connect-expired-password <<EOF
 select  (concat(truncate(sum(data_length)/1024/1024,2),' MB') + concat(truncate(sum(index_length)/1024/1024,2),'MB')) as db_size
 from information_schema.tables;
 EOF`
-echo "The database size is $rds_db_size M"
+echo "The database size is $master_db_size M"
 
-rds_db_size2=`echo ${rds_db_size%.*}`
-echo $rds_db_size2
+master_db_size2=`echo ${master_db_size%.*}`
+echo $master_db_size2
 
-if   [ $rds_db_size2 -le "5000" ]
+if   [ $master_db_size2 -le "5000" ]
    then echo "The export will consume 10 minutes .... "
    
-elif [ $rds_db_size2 -le "50000" ]
+elif [ $master_db_size2 -le "50000" ]
 then
 echo "The export will consume 20 minutes .... "
 
-elif [ $rds_db_size2 -le "100000" ]
+elif [ $master_db_size2 -le "100000" ]
 then
 echo "The export will consume 40 minutes .... "
 
@@ -129,7 +127,7 @@ echo "Start to set the master-slave ......"
 
 /usr/bin/mysql -u$slave_user -p$slave_password -h$slave_hostname 2>/dev/null <<EOF
 CHANGE MASTER TO
-MASTER_HOST='$rds_hostname',
+MASTER_HOST='$master_hostname',
 MASTER_USER='$repluser',
 MASTER_PASSWORD='$repluserpassword',
 MASTER_LOG_FILE='$binlog_number',
@@ -140,7 +138,7 @@ EOF
 
 echo "/usr/bin/mysql -u$slave_user -p$slave_password -h$slave_hostname 2>/dev/null <<EOF
 CHANGE MASTER TO
-MASTER_HOST='$rds_hostname',
+MASTER_HOST='$master_hostname',
 MASTER_USER='$repluser',
 MASTER_PASSWORD='$repluserpassword',
 MASTER_LOG_FILE='$binlog_number2',
@@ -224,4 +222,10 @@ then
 osversion=7
 systemctl restart mysqld.service
 fi
+}
+
+
+function check_slave_status(){
+#check the status of the slave sync
+/usr/bin/mysql -u$slave_user -p$slave_password -h$slave_hostname 2>/dev/null -e "show slave status\G"|egrep "Seconds_Behind_Master|Slave_IO_State|Slave_IO_Running|Slave_SQL_Running|Master_Host"
 }

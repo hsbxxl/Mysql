@@ -1,9 +1,10 @@
 # The master vars
-rds_hostname=$1
-rds_user=$2
-rds_password=$3
-rds_port=3306
-rdsdb=`echo $rds_hostname | cut -d . -f 1`
+master_hostname=$1
+master_user=$2
+master_password=$3
+master_port=3306
+master_db=`echo $rds_hostname | cut -d . -f 1`
+
 
 slave_hostname=$4
 slave_user=$5
