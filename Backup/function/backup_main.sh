@@ -1,5 +1,6 @@
 #!/bin/bash
 #The mysql backup scripts
+../conf/config.sh
 
 BF_time=$(date +%F) 
 ltime=$(date +%F~%H-%M-%S)
@@ -29,6 +30,33 @@ du -sm $BF_time.BK.tar.gz
 /usr/bin/scp root@$host_name:$backupset_path/$BF_time.BK.tar.gz  $server_backupset_path/$host_name/$BF_time/
 echo "#############Scp End $(date +%F~%H-%M-%S)###################"
 }
+
+
+function backup_mysql() {
+ 
+cat <<EOF > /mysql/backup_script.sh
+innobackupex --defaults-file=/etc/my.cnf --user=root --password="root" --password="root" --parallel=4  --stream=tar /mysql/bk 2>/mysql/output.log| gzip > /mysql/bk`date +%F_%H-%M-%S`.tar.gz
+EOF
+scp -o "StrictHostKeyChecking no" /mysql/backup_script.sh root@"c6701":/mysql/
+ssh root@c6701 'sh /mysql/backup_script.sh >/dev/null 2>&1 &' 
+sleep 10
+ssh root@c6701 'rm /mysql/backup_script.sh' 
+##读取/mysql/output.log输出,检查是否成功
+}
+
+
+function backup_mysql() {
+#SCP 归集备份文件
+#先检查是否备份完成读入host.list列表,并循环检查/mysql/output.log的结果,如果成功,scp归集,并mv /mysql/output.log重命名,然后将这个host名字写入 successful_host_list文件
+#如果/mysql/output.log检查失败 not_complete_host_list文件
+#过半小时,再次轮训not_complete_host_list文件, 成功的话,写入successful_host_list文件,失败的话,写入not_complete_host_list文件
+#再过半小时,继续轮训上一步
+
+}
+
+
+
+
 
 
 
