@@ -37,7 +37,7 @@ function backup_mysql() {
 cat <<EOF > /mysql/backup_script.sh
 innobackupex --defaults-file=/etc/my.cnf --user=root --password="root" --password="root" --parallel=4  --stream=tar /mysql/bk 2>/mysql/output.log| gzip > /mysql/bk`date +%F_%H-%M-%S`.tar.gz
 #generate status log
-tail -1 /mysql/output.log| awk '{print $3}' > status.log
+tail -1 /mysql/output.log| awk '{print \$3}' > /mysql/status.log
 EOF
 scp -o "StrictHostKeyChecking no" /mysql/backup_script.sh root@"c6701":/mysql/
 ssh root@c6701 'sh /mysql/backup_script.sh >/dev/null 2>&1 &' 
