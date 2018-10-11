@@ -1,3 +1,12 @@
+# Create the path on the client to backup
+if [ ! -d "$client_backup_base" ];then
+
+mkdir -p {$client_backup_base,$client_backupset_temp,$client_backupset_dir,$client_backup_log_temp,$client_backup_log}
+fi
+
+
+
+
 ssh omd@192.168.1.100  # 利用远程机的用户登录
 ssh omd@192.168.1.100  -o stricthostkeychecking=no # 首次登陆免输yes登录
 ssh omd@192.168.1.100 "ls /home/omd"  # 当前服务器A远程登录服务器B后执行某个命令
@@ -29,3 +38,117 @@ EOF
     i=` expr $i + 1 `
 done
 exit 0
+
+
+备份+压缩,经过测试,更省时间
+
+ssh root@c6701 "echo 'innobackupex --defaults-file=/etc/my.cnf --user=root --password="root" --password="root" --stream=tar  /mysql/bk | gzip > /mysql/bk`date +%F_%H-%M-%S`.tar.gz' >> /mysql/bk/test.sh"
+ssh root@c6701 'sh /mysql/bk/test.sh >/dev/null 2>&1 &' 
+
+ssh root@c6701 'innobackupex --defaults-file=/etc/my.cnf --user=root --password="root" --password="root" --stream=tar  /mysql/bk | gzip > /mysql/bk`date +%F_%H-%M-%S`.tar.gz >/dev/null 2>&1 &' 
+
+ssh root@c6701 'innobackupex --defaults-file=/etc/my.cnf --user=root --password="root" --password="root"  /mysql/bk >/dev/null 2>&1 &' 
+
+innobackupex --defaults-file=/etc/my.cnf --user=root --password="root" /mysql/bk
+
+
+
+
+
+ scp -l 1000 源地址 目标地址 （-l是限制传送速率，1000为100k/s）
+
+ 
+
+tip：“scp -r 源地址 目标地址”可以用来传送文件夹。
+
+
+
+
+
+
+echo > /mysql/ok.list
+echo > /mysql/fail.list
+#scp_list 需要在上一个备份的脚本中就产生出来, cat host.list > scp_list
+cat scp_list | while read line
+do
+    echo $line
+    host_name=$line
+	echo $host_name
+if [ -f "/mysql/${host_name}_output.log" ] 
+then 
+
+backup_stat=`tail -1 /mysql/${host_name}_output.log| awk '{print $3}'`
+   if [ "$backup_stat" = "completed" ] && [ -n "$backup_stat" ]
+   then
+      echo "The backup completed!!"
+	  echo ${host_name} >> /mysql/ok.list
+	  sed -i '/'"$host_name"'/d' /mysql/scp_list
+	  mv /mysql/${host_name}_output.log /mysql/${host_name}_output.log.bk.$(date +%F~%H-%M-%S)
+   else
+      echo "The backup not completed!!"
+      echo ${host_name} >> /mysql/fail.list
+    fi
+else
+   echo "The output file is not exist. The backup not completed!!"
+
+fi
+done
+
+
+
+sed '/c3/'d host.list
+
+host_name=c1
+sed -i '/'"$host_name"'/d' xx
+
+
+
+
+BF_time=$(date +%F) 
+ltime=$(date +%F~%H-%M-%S)
+
+function mysqldump_bk() {
+aa
+}
+
+function innobackupex_local_bk() {
+#This function run in the client side
+echo "#########Start backup at $(date +%F~%H-%M-%S)###############"
+/usr/bin/innobackupex --defaults-file=/etc/my.cnf --user=$db_user --password="${db_password}" $backupset_path/$BF_time/
+sleep 10
+
+echo "#############Tar $(date +%F~%H-%M-%S)###################"
+cd $backupset_path
+/usr/bin/tar zcf $BF_time.BK.tar.gz $BF_time --remove &> /dev/null
+
+echo "#########End backup at $(date +%F~%H-%M-%S)###############"
+}
+
+function scp_backupset_to_backupserver() {
+#This function run in the server side
+echo "#############Scp Start $(date +%F~%H-%M-%S)###################"
+cd $backupset_path
+du -sm $BF_time.BK.tar.gz
+/usr/bin/scp root@$host_name:$backupset_path/$BF_time.BK.tar.gz  $server_backupset_path/$host_name/$BF_time/
+echo "#############Scp End $(date +%F~%H-%M-%S)###################"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
