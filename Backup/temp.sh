@@ -1,10 +1,13 @@
-# Create the path on the client to backup
-if [ ! -d "$client_backup_base" ];then
-
-mkdir -p {$client_backup_base,$client_backupset_temp,$client_backupset_dir,$client_backup_log_temp,$client_backup_log}
-fi
+cat host_ip.txt 
+172.18.14.123 root 123456
+172.18.254.54 root 123456 
 
 
+ip=`echo $line | cut -d " " -f1`             # 提取文件中的ip
+user_name=`echo $line | cut -d " " -f2`      # 提取文件中的用户名
+pass_word=`echo $line | cut -d " " -f3`      # 提取文件中的密码 
+		
+		
 
 
 ssh omd@192.168.1.100  # 利用远程机的用户登录
@@ -138,6 +141,15 @@ echo "#############Scp End $(date +%F~%H-%M-%S)###################"
 
 
 
+    #!/bin/bash
+     
+ssh_host="root@c6701"
+file="/mysql/output.log"
+ 
+if ssh $ssh_host test -e $file;
+    then echo $file exists
+    else echo $file does not exist
+fi
 
 
 

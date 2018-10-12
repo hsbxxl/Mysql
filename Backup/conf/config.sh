@@ -4,7 +4,7 @@
 # Vars for mysql
 db_user=root
 db_password=root
-db_port=
+db_port=3306
 mycnf=/etc/my.cnf
 
 

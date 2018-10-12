@@ -6,6 +6,7 @@
 function prepare_server_env {
 if [ ! -d "$server_backup_base" ];then
 mkdir -p {$server_backup_base,$server_backupset_dir,$server_backup_script,$server_backup_script_temp,$server_backup_log}
+touch $server_backup_script/host_list
 else
 echo "The folders are exist!"
 fi
@@ -23,6 +24,13 @@ scp -o "StrictHostKeyChecking no" $server_backup_script_temp/create_path_script.
 
 ssh ${client_user}@${host_name} "sh /tmp/create_path_script.sh; rm /tmp/create_path_script.sh" 
 
+
+cat $server_backup_script/host_list | while read line
+do
+    echo $line
+    host_name=$line
+	echo $host_name
+
 #generate the backupset name, that is only valid in this function
 backupset_name=${host_name}_$(date +%F-%H-%M).tar.gz
 
@@ -35,6 +43,8 @@ scp -o "StrictHostKeyChecking no" $server_backup_script_temp/backup_script.sh ${
 ssh ${client_user}@${host_name} 'sh $client_backup_log_temp/backup_script.sh >/dev/null 2>&1 &' 
 sleep 5
 ssh ${client_user}@${host_name} 'rm $client_backup_log_temp/backup_script.sh' 
+
+done
 }
 
 
@@ -48,13 +58,18 @@ function scp_mysql_backupset() {
 echo > $server_backup_log/ok.list
 echo > $server_backup_log/fail.list
 
-#scp_list 需要在上一个备份的脚本中就产生出来, cat host.list > $server_backup_script_temp/scp_list
+#scp_list is generated in the function physical_backup_mysql
+
+db_count=`cat $server_backup_script_temp/scp_list|wc -l`
+echo "There are $db_count DBs will be scp!!"
+
 cat $server_backup_script_temp/scp_list | while read line
 do
     echo $line
     host_name=$line
 	echo $host_name
 
+	
 #需要增加判断,host都是能正常访问的,如果不能访问,退出备份
 
 
@@ -87,11 +102,13 @@ backup_stat=`ssh ${client_user}@${host_name} "cat $client_backup_log_temp/status
 	  sed -i '/'"$host_name"'/d' $server_backup_script_temp/scp_list
 	  #rename the output log,
 	   ssh ${client_user}@${host_name} "mv $client_backup_log_temp/${host_name}_$(date +%F)*_output.log $client_backup_log"
+	   # clear the info for status.log
+	   ssh ${client_user}@${host_name} "echo > $client_backup_log_temp/status.log"
 	   #临时调试
 	   ssh ${client_user}@${host_name} "ls $client_backup_log_temp/${host_name}_$(date +%F)*_output.log"
    else
       echo "The scp not completed!! The fail host is ${host_name}"
-      echo ${host_name} >> $client_backupset_temp/fail.list
+      echo ${host_name} >> $server_backup_log/fail.list
     fi
 
 done
