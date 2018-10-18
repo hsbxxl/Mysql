@@ -1,6 +1,6 @@
 #!/bin/bash
 #The mysql backup scripts
-../conf/config.sh
+../config.sh
 
 # Prepare the related path for the backup
 function prepare_server_env {
@@ -114,3 +114,21 @@ backup_stat=`ssh ${client_user}@${host_name} "cat $client_backup_log_temp/status
 done
 }
 
+
+function query_mysql_dbsize() {
+
+cat $server_backup_script/host_list | while read line
+do
+    echo $line
+    host_name=$line
+	echo $host_name
+
+rds_db_size=`/usr/bin/mysql -u$db_user -p"$db_password" -h$host_name -N --connect-expired-password <<EOF
+select  (concat(truncate(sum(data_length)/1024/1024,2),' MB') + concat(truncate(sum(index_length)/1024/1024,2),'MB')) as db_size
+from information_schema.tables;
+EOF`
+
+/usr/bin/mysql -u$db_user -p"$db_password" -h$host_name -N --connect-expired-password -e "show variables like '%bin%'"
+echo "The database size is $rds_db_size M"
+done
+}
