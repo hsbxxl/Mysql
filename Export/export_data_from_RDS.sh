@@ -2,7 +2,7 @@
 if [ "$#" != "3" ]; then
   echo 'invalid parameters'
   echo 'usage: rds_mysql_dump.sh rds_instance username password'
-  echo 'example: rds_mysql_dump.sh mysqlm-test.cw1zsttpjvrr.rds.cn-north-1.amazonaws.com.cn envision password'
+  echo 'example: rds_mysql_dump.sh mysqlm-test.com.cn user password'
   return
 fi
 
