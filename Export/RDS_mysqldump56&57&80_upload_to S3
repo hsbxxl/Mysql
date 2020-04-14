@@ -77,7 +77,7 @@ mysqldump -u$rds_user -p$rds_password -h$rds_hostname \
 --routines \
 --triggers \
 --compress  \
---databases $db_name > mysqldb_$rdsdb"_"$dumpfile_time.sql
+--databases $db_name |gzip > mysqldb_$rdsdb"_"$dumpfile_time.sql.tar.gz
 
 end_time=`date "+%Y_%m_%d_%H_%M_%S"`
 echo "Mysqldump End Time is $end_time"
@@ -92,12 +92,7 @@ let min=($day_stamp/60)
 echo "RDS Databases dump done!! It took $min Minutes"
 echo " "
 
-echo "Zip the dumpfile ... ..."
-
-
 upload_s3_time=`date "+%Y_%m_%d_%H"`
-
-tar -zcvf mysqldb_$rdsdb"_"$dumpfile_time.sql.tar.gz mysqldb_$rdsdb"_"$dumpfile_time.sql
 
 echo "Ziped dumpfile size"
 du -sm mysqldb_$rdsdb"_"$dumpfile_time.sql.tar.gz
