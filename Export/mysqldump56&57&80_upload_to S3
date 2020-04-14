@@ -1,0 +1,126 @@
+# check the format of the input
+if [ "$#" != "3" ]; then
+  echo 'invalid parameters'
+  echo 'usage: rds_mysql_dump.sh rds_instance username password'
+  echo 'example: rds_mysql_dump.sh mysqlm-test.cw1zsttpjvrr.rds.cn-north-1.amazonaws.com.cn envision password'
+  return
+fi
+
+# The vars
+rds_hostname=$1
+rds_user=$2
+rds_password=$3
+rds_port=3306
+rdsdb=`echo $rds_hostname | cut -d . -f 1`
+
+#S3 folder
+s3_folder=s3://nlb-log/$1
+
+
+
+
+# check the mysql connectivity 
+dbstat=`mysqladmin -u$rds_user -p$rds_password -h$rds_hostname -P$rds_port ping |grep alive|wc -l`
+if [ $dbstat -eq 1 ]
+    then 
+    echo "Connect the RDS DB successfully"
+
+# estimate the dump of time
+rds_db_size=`/usr/bin/mysql -u$rds_user -p$rds_password -h$rds_hostname -N  <<EOF
+select  (concat(truncate(sum(data_length)/1024/1024,2),' MB') + concat(truncate(sum(index_length)/1024/1024,2),'MB')) as db_size
+from information_schema.tables;
+EOF`
+
+#取整数并打印 
+echo "The database size is ${rds_db_size%.*} M"
+
+
+# get the database name list
+db_name=`/usr/bin/mysql -u$rds_user -p$rds_password -h$rds_hostname -N <<EOF
+select TABLE_SCHEMA
+from information_schema.tables
+where TABLE_SCHEMA NOT IN ('MYSQL','PERFORMANCE_SCHEMA','INFORMATION_SCHEMA','SYS','mysql','information_schema','performance_schema','sys')
+group by TABLE_SCHEMA;
+EOF`
+echo "The below databases will be exported ......"
+
+# echo databases list
+for i in ${db_name[*]}
+do
+        echo $i
+done
+
+
+# If $db_name is Null, mysqldump will not be run!
+  
+if [ ! -n "$db_name" ]; then
+  
+echo "Databases list IS NULL, exit!!"
+  
+else
+  
+
+# record the timestamp
+first_stamp=`date +%s`
+start_time=`date "+%Y_%m_%d_%H_%M_%S"`
+dumpfile_time=`date "+%Y_%m_%d_%H_%M_%S"`
+echo "Mysqldump Start Time is $start_time"
+echo " "
+echo "Running ......"
+echo " "
+echo 
+
+# export the databases
+mysqldump -u$rds_user -p$rds_password -h$rds_hostname \
+--port=3306 \
+--single-transaction \
+--routines \
+--triggers \
+--compress  \
+--databases $db_name > mysqldb_$rdsdb"_"$dumpfile_time.sql
+
+end_time=`date "+%Y_%m_%d_%H_%M_%S"`
+echo "Mysqldump End Time is $end_time"
+
+echo " "
+
+# record the timestamp
+today_stamp=`date +%s`                           
+let day_stamp=($today_stamp - $first_stamp)      
+let min=($day_stamp/60)                       
+
+echo "RDS Databases dump done!! It took $min Minutes"
+echo " "
+
+echo "Zip the dumpfile ... ..."
+
+
+upload_s3_time=`date "+%Y_%m_%d_%H"`
+
+tar -zcvf mysqldb_$rdsdb"_"$dumpfile_time.sql.tar.gz mysqldb_$rdsdb"_"$dumpfile_time.sql
+
+echo "Ziped dumpfile size"
+du -sm mysqldb_$rdsdb"_"$dumpfile_time.sql.tar.gz
+
+echo " "
+echo "Upload the dumpfile to S3 ... ..."
+
+aws s3 cp mysqldb_$rdsdb"_"$dumpfile_time.sql.tar.gz $s3_folder/$upload_s3_time/mysqldb_$rdsdb"_"$dumpfile_time.sql.tar.gz
+
+echo " "
+echo "Check the dumpfile in S3 "
+
+aws s3 ls  $s3_folder/$upload_s3_time/mysqldb_$rdsdb"_"$dumpfile_time.sql.tar.gz
+
+
+
+# This IF judge the database list is null	
+fi
+
+
+    else
+    echo "connect failed"
+
+
+# This IF check the format of the input
+fi 
